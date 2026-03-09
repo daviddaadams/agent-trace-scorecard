@@ -285,6 +285,11 @@ def main() -> int:
         default="json",
         help="Output format (default: json)",
     )
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Suppress output, only return exit code",
+    )
     parser.add_argument("--max-thrash", type=float, default=1.0, help="Fail if thrash_ratio exceeds this value")
     parser.add_argument("--max-failure-rate", type=float, default=1.0, help="Fail if failure_rate exceeds this value")
     parser.add_argument("--max-flaky-rate", type=float, default=1.0, help="Fail if flaky_command_rate exceeds this value")
@@ -300,10 +305,11 @@ def main() -> int:
     events = load_events(args.trace)
     summary = summarize(events)
 
-    if args.format == "csv":
-        print(format_summary_csv(summary))
-    else:
-        print(json.dumps(summary, indent=2))
+    if not args.quiet:
+        if args.format == "csv":
+            print(format_summary_csv(summary))
+        else:
+            print(json.dumps(summary, indent=2))
 
     if summary["thrash_ratio"] > args.max_thrash:
         print(
