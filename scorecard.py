@@ -243,6 +243,35 @@ def summarize(events: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def compare_summaries(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    """Compare two trace summaries and return delta metrics."""
+    def _delta(baseline_val: Any, candidate_val: Any, lower_is_better: bool = True) -> dict[str, Any]:
+        if baseline_val is None or candidate_val is None:
+            return {"status": "N/A"}
+        diff = candidate_val - baseline_val
+        pct = (diff / abs(baseline_val) * 100) if baseline_val != 0 else None
+        if lower_is_better:
+            status = "IMPROVED" if diff < 0 else "REGRESSED" if diff > 0 else "SAME"
+        else:
+            status = "IMPROVED" if diff > 0 else "REGRESSED" if diff < 0 else "SAME"
+        return {
+            "baseline": baseline_val,
+            "candidate": candidate_val,
+            "delta": round(diff, 4),
+            "pct_change": round(pct, 2) if pct is not None else None,
+            "status": status,
+        }
+
+    return {
+        "thrash_ratio": _delta(baseline.get("thrash_ratio"), candidate.get("thrash_ratio"), lower_is_better=True),
+        "failure_rate": _delta(baseline.get("failure_rate"), candidate.get("failure_rate"), lower_is_better=True),
+        "flaky_command_rate": _delta(baseline.get("flaky_command_rate"), candidate.get("flaky_command_rate"), lower_is_better=True),
+        "replay_rate": _delta(baseline.get("replay_rate"), candidate.get("replay_rate"), lower_is_better=True),
+        "unresolved_stale_rate": _delta(baseline.get("unresolved_stale_rate"), candidate.get("unresolved_stale_rate"), lower_is_better=True),
+        "retry_event_count": _delta(baseline.get("retry_event_count"), candidate.get("retry_event_count"), lower_is_better=True),
+    }
+
+
 def format_summary_csv(summary: dict[str, Any]) -> str:
     """Format summary as CSV row with header."""
     # Flatten nested structures for CSV
